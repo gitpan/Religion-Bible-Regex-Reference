@@ -1,0 +1,18 @@
+--- #YAML:1.0
+name:                Religion-Bible-Regex-Reference
+version:             v0.9
+abstract:             this Perl object represents a Biblical reference along with the functions that can be applied to it.
+license:             ~
+author:              
+    - Daniel Holmlund <holmlund.dev@gmail.com>
+generated_by:        ExtUtils::MakeMaker version 6.42
+distribution_type:   module
+requires:     
+    Religion::Bible::Regex::Builder: v0.95
+    Religion::Bible::Regex::Config: v0.5
+    Test::Base:                    0
+    Test::More:                    0
+    version:                       0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3
