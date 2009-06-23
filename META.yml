@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Religion-Bible-Regex-Reference
-version:             v0.9
+version:             v0.91
 abstract:             this Perl object represents a Biblical reference along with the functions that can be applied to it.
 license:             ~
 author:              

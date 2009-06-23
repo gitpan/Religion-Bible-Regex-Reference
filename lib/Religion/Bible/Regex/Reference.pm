@@ -14,26 +14,14 @@ use Storable qw(store retrieve freeze thaw dclone);
 use Data::Dumper;
 
 use Religion::Bible::Regex::Config;
-use version; our $VERSION = qv('0.9');
+use version; our $VERSION = qv('0.91');
 
 ##################################################################################
 # Configuration options:
 # reference.full_book_name: true/false
 # reference.abbreviation.map: true/false
 # reference.cvs: Chapitre/Verset Separateur
-##################################################################################
-# Glossaire des abréviations
-# $s  = header space
-# $a   = l'espace entre le livre et le chapitre - $d
-# $l   = le nom du livre ou abréviation
-# $c   = chapitre
-# $b   = l'espace entre le chapitre et le chapitre-verset separateur
-# $cvs = chapitre ou verset separateur
-# $d   = l'espace entre le chapitre-verset separateur et le verset
-# $v, $vl_cl_sep
-# $ts  = l'espace vers le tail (queue)
-# $type = LCV, LCCV, LCVV
-##################################################################################
+##################################################################################I
 
 # Defaults and Constants
 # our %configuration_defaults = (
@@ -57,9 +45,9 @@ sub new {
     bless $self, $class;
     $self->{'regex'} = $regex;
     $self->{'config'} = $config;
-#    $self->{'reference_config'} = new Religion::Bible::Regex::Config($config->get_formatting_configurations, \%configuration_defaults);
     return $self;
 }
+
 # sub _initialize_default_configuration {
 #     my $self = shift; 
 #     my $defaults = shift; 
@@ -69,9 +57,8 @@ sub new {
 #     }
 # }
 
-# Returns a reference to a Religion::Bible::Regex::Builder object.
-
 # Subroutines related to getting information
+# Returns a reference to a Religion::Bible::Regex::Builder object.
 sub get_regexes {
   my $self = shift;
   confess "regex is not defined\n" unless defined($self->{regex});
@@ -85,22 +72,11 @@ sub get_configuration {
   return $self->{config};
 }
 
+# Returns the private hash that contains the Bible Reference
 sub get_reference_hash { return shift->{'reference'}; }
 sub reference { get_reference_hash(@_); }
 
-# sub get_formatting_configuration_hash {
-#   my $self = shift;
-#   confess "reference is not defined in ReferenceBiblique::Versification\n" unless defined($self->{config}->get_formatting_configurations);
-#   return $self->{config}->get_formatting_configurations;
-# }
-
-# sub get_versification_configuration_hash {
-#   my $self = shift;
-#   confess "reference_config is not defined in ReferenceBiblique::Versification\n" unless defined($self->{config}->get_versification_configurations);
-#   return $self->{config}->get_versification_configurations;
-# }
-
-# Unique key representing the book this reference is from
+# Getters 
 sub key  { shift->{'reference'}{'data'}{'key'}; }
 sub c    { shift->{'reference'}{'data'}{'c'};   }
 sub v    { shift->{'reference'}{'data'}{'v'};   }
@@ -124,6 +100,7 @@ sub s6   { shift->{'reference'}{'spaces'}{'s6'}; }
 sub s7   { shift->{'reference'}{'spaces'}{'s7'}; }
 sub s8   { shift->{'reference'}{'spaces'}{'s8'}; }
 sub s9   { shift->{'reference'}{'spaces'}{'s9'}; }
+
 sub book { 
     my $self = shift;
     return $self->get_regexes->book($self->key);
@@ -153,12 +130,12 @@ sub book2key {}
 sub abbreviation2key {}
 
 # Subroutines for setting
-sub set_key   {
-    my $self = shift; 
-    my $e = shift;
-    return unless (_non_empty($e));
-    $self->{'reference'}{'data'}{'key'} = $e; 
-}
+#sub set_key   {
+#    my $self = shift; 
+#    my $e = shift;
+#    return unless (_non_empty($e));
+#    $self->{'reference'}{'data'}{'key'} = $e; 
+#}
 sub set_c     {
     my $self = shift;
     my $e = shift;
@@ -179,11 +156,35 @@ sub set_v     {
     $self->{'reference'}{'original'}{'v'}   = $e; 
 }
 
-sub set_key2  {
+# sub set_key2  {
+#    my $self = shift;
+#    my $e = shift;
+#    return unless (_non_empty($e));
+#    $self->{'reference'}{'data'}{'key2'} = $e; 
+#}
+
+sub set_b     {
     my $self = shift;
     my $e = shift;
     return unless (_non_empty($e));
-    $self->{'reference'}{'data'}{'key2'} = $e; 
+    $self->{'reference'}{'original'}{'b'}  = $e; 
+
+    # If there is a key then create the book2key and abbreviation2key associations
+    my $key = $self->get_regexes->key($e);
+    unless (defined($key)) {
+	print Dumper $self->{'regex'}{'book2key'};
+	print Dumper $self->{'regex'}{'abbreviation2key'};
+	croak "Key must be defined: $e\n";
+    }
+    $self->{'reference'}{'data'}{'key'} = $self->get_regexes->key($e);
+}
+sub set_b2    {
+    my $self = shift;
+    my $e = shift;
+    return unless (_non_empty($e));
+
+    $self->{'reference'}{'original'}{'b2'}  = $e; 
+    $self->{'reference'}{'data'}{'key2'} = $self->get_regexes->key($e);
 }
 sub set_c2    {
     my $self = shift; 
@@ -204,32 +205,6 @@ sub set_v2    {
     }
     $self->{'reference'}{'original'}{'v2'}   = $e;  
 }
-
-sub set_b     {
-    my $self = shift;
-    my $e = shift;
-    return unless (_non_empty($e));
-    $self->{'reference'}{'original'}{'b'}  = $e; 
-
-    # If there is a key then create the book2key and abbreviation2key associations
-    my $key = $self->get_regexes->key($e);
-    unless (defined($key)) {
-	print Dumper $self->{'regex'}{'book2key'};
-	print Dumper $self->{'regex'}{'abbreviation2key'};
-	croak "Key must be defined: $e\n";
-    }
-    $self->{'reference'}{'data'}{'key'} = $self->get_regexes->key($e);
-#    }
-}
-sub set_b2    {
-    my $self = shift;
-    my $e = shift;
-    return unless (_non_empty($e));
-
-    $self->{'reference'}{'original'}{'b2'}  = $e; 
-    $self->{'reference'}{'data'}{'key2'} = $self->get_regexes->key($e);
-}
-
 sub set_context_words  {
     my $self = shift;
     my $e = shift;
@@ -578,7 +553,6 @@ sub parse_context_words {
     return ($header, $state);
 }
 
-
 sub formatted_context_words {
     my $self = shift;
     my $state = shift || 'BOOK';
@@ -731,9 +705,9 @@ sub bol {
     }
 
     if ($state eq 'BOOK') {
-	if ($self->state_is_chapitre || $self->state_is_verset) {
-	    $ret .= $self->context_words || '';
-	}
+	# if ($self->state_is_chapitre || $self->state_is_verset) {
+	#     $ret .= $self->context_words || '';
+	# }
 
 	if ($ba eq 'ABBREVIATION' || ($ba eq 'ORIGINAL' && $self->book_type eq 'ABBREVIATION')) {
 	    $ret .= $self->abbreviation || '';
@@ -1190,18 +1164,13 @@ sub _setor {
 1; # Magic true value required at end of module
 __END__
 
-
-
-
 =head1 NAME
 
 Religion::Bible::Regex::Reference -  this Perl object represents a Biblical reference along with the functions that can be applied to it.
 
-
 =head1 VERSION
 
-This document describes Religion::Bible::Regex::Reference version 0.8
-
+This document describes Religion::Bible::Regex::Reference version 0.9
 
 =head1 SYNOPSIS
 
@@ -1290,18 +1259,153 @@ Here are the different Bible reference types with an example following each one:
 
 =head2 Explicit and Implicit Bible Reference Types	
 
+=head3
+
 We say the Bible reference is explicit when it has enough information within the 
-reference to identify an exact location within the Bible. See above for examples.
+reference to identify an exact location within the Bible. 
+
+Examples of explicit Bible references include:
+
+Genesis 1:1
+Ge 1:1
+Ge 1
+Genesis 1
+
+An explicit reference must have a book and a chapter but not necessarily a verse.
+
+=head3
 
 We say that a Bible reference is implicit when the reference itself does not 
 contain enough information to find its location in the Bible. often times within 
 a commentary we will find implicit Bible references that use the context of the text
 to identify the Bible reference.
 
+Examples of implicit Bible references include:
+
     in Chapter 4
     in verse 17
     see 4:17
     as we see in chapter 5
+    (4:7)
+
+An implicit preference must be proceeded by some identifying phrase or character(s), 
+referred to as the context word(s).  Context words allow these Bible reference objects
+to identify and distinguish him between Bible references and other numbers that 
+might be in the text of the commentary. 
+
+In the examples above the context words are respectively:
+    
+    'in Chapter'
+    'in verse'
+    'see'
+    'as we see in chapter'
+    '('
+
+
+=head2 Explaination of the Parts of a Bible Reference
+
+When a Bible reference is parsed it is divided up into a number of different parts as follows:
+
+First of all, a Bible reference can have an interval.  Both sides of the interval, '-' can 
+have a book, chapter and verse. For example, 'Genesis 1:1 - Revelation 22:21', 'Ge 1:1-2:3', and 'Ge 1:1-5' are all verses with intervals.
+
+=head3 Reference Parts
+
+key: A key is a unique numeric identifier which is defined in the configuration file for a particular book of the Bible. 
+For example, Genesis is often defined as '1'.  any alternative spellings and abbreviations will also map to this number. So for example, if the configuration file defines the book of Genesis with French spellings like this:
+     
+     books:
+       1: 
+         Match:
+           Book: ['Genèse', 'Genese']
+           Abbreviation: ['Ge']
+         Normalized: 
+           Book: Genèse
+           Abbreviation: Ge
+          
+     Then 'Genèse', 'Genese', 'Ge' would all map to a key value of '1'.
+          
+c  : this is the chapter in the beginning part of the reference.
+	For example, for 'Genesis 11', c is '11'
+    		  for 'Genesis 1-11', c is '1'
+     		  for 'Romans 3:23', c is '3'
+     
+v  : this is the verse in the beginning part of the reference.
+For example, for 'John 14:6', v is '6'.
+     		  for 'John 3:16', v is '16'.
+     		  for 'Psalm 23:1-3', v is '1'
+     
+cvs : Chapter And Verse Separator 
+      In most English Bibles this character is a ':'.  Often in Europe the '.' character is used as a separator.
+For example, 
+      
+      'Ephesians 2:8', cvs is ':'
+      'Actes 1.8', cvs is '.'
+
+cvs2 : Chapter And Verse Separator for the interval part of the Bible reference
+      In most English Bibles this character is a ':'.  Often in Europe the '.' character is used as a separator.
+For example, 
+      
+      'Ephesians 2:8-3:10', cvs is ':'
+      'Actes 1.8-2.1', cvs is '.'
+
+dash : the interval operator.  In most English Bibles this character is simply a '-'.  However in many European Bibles a long dash is used if the interval separates two chapters, and a normal dash is used if the interval is between two verses.
+
+	'Genesis 1:1 - Revelation 22:21', dash is '-'.
+      		   
+key2 : The same as key except used when this Bible verse has an interval. So for example, if the configuration file defines the book of Genesis with French spellings like this:
+     
+     books:
+       1: 
+         Match:
+           Book: ['Genèse', 'Genese']
+           Abbreviation: ['Ge']
+         Normalized: 
+           Book: Genèse
+           Abbreviation: Ge
+      
+       66: 
+         Match:
+           Book: ['Revelation']
+           Abbreviation: ['Re', 'Rev']
+         Normalized: 
+             Book: Revelation
+            Abbreviation: Re
+                  
+       for example, for 'Genesis 1:1 - Revelation 22:21', key2 is '66'.
+     	            
+c2  : The same as c except this is the chapter when this Bible verse has an interval. 
+
+For example,
+
+	'Genesis 1:1 - Revelation 22:21', c2 is '22'.
+
+v2  : The same as v except this is the verse when this Bible verse has an interval. 
+
+For example,
+
+	'Genesis 1:1 - Revelation 22:21', v2 is '21'.
+
+=head3 Spaces in a Bible Reference
+
+The various parts of the Bible verse may have spaces, (ascii 32), or non-breakable spaces, (ascii 160), between them.
+
+Here they are defined as s2, s3, s4, s5, s6, s7, s8 and s9.  There are no spaces defined 
+before or after a Bible verse, which is why s1 and s10 are no longer present.
+
+
+Spaces are defined like this on a LCVLCV reference.
+
+	L(s2)C(s3):(s4)V(s5)-(s6)L2(s7)C2(s8):(s9)V2
+	s2 : between L and C
+	s3 : between C and the CVS
+	s4 : between CVS and V
+	s5 : between V and the dash
+	s6 : between the dash and L2
+	s7 : between L2 and C2
+	s8 : between C2 and CVS2
+	s9 : between CVS2 and V2
+	
 
 =head1 INTERFACE 
 
@@ -1319,7 +1423,11 @@ Returns the Religion::Bible::Regex::Builder object used by this reference.
 
 =head2 get_reference_hash
 
-Returns the hash that contains all of the parts of the current Bible reference.
+Returns the hash that contains all of the parts of the current Bible reference.  
+
+=head2 reference
+
+An alias for get_reference_hash
 
 =head2 is_explicit
 
@@ -1327,107 +1435,490 @@ Returns true if all the information is there to reference an exact verse or vers
 
 =head2 set
 
-=head2 key 
-=head2 c   
-=head2 v   
+Takes a hash and uses it to define a Bible reference.
 
-=head2 key2 
-=head2 c2   
-=head2 v2   
-
-=head2 ob
-=head2 ob2
-=head2 oc  
-=head2 oc2 
-=head2 ov  
-=head2 ov2 
-
-=head2 s2 
-=head2 s3 
-=head2 s4 
-=head2 s5 
-=head2 s6 
-=head2 s7 
-=head2 s8 
-=head2 s9 
-
-=head2 book          
-=head2 book2         
-=head2 abbreviation  
-=head2 abbreviation2 
-=head2 cvs           
-=head2 dash  
-
-=head2 set_key 
-=head2 set_c   
-=head2 set_v   
-
-=head2 set_key2 
-=head2 set_c2   
-=head2 set_v2   
+For example, this hash defines the LCVLCV reference, Ge 1:1-Ex 2:5.
+{b=>'Ge',s2=>' ',c=>'1',cvs=>':',v=>'1', dash=>'-',b2=>'Ex',s7=>' ',c2=>'2',v2=>'5'}
 
 =head2 set_b  
+
+This function takes a book or an abbreviation as defined under the Match sections in the configurations file and sets the key. 
+Use this function because when you're parsing a Bible reference this function this function will be able to set the correct
+book whether you pass it an abbreviation or a book name based upon the possible defined spellings of each. 
+
+For example given the configuration:
+
+     books:
+       1: 
+         Match:
+           Book: ['Genèse', 'Genese']
+           Abbreviation: ['Ge']
+         Normalized: 
+           Book: Genèse
+           Abbreviation: Ge
+
+     set_b('Ge'), set_b('Genèse') and set_b('Genese') all set the key to '1'
+          
+=head2 set_c   
+
+This function sets the chapter for a Bible reference.
+
+=head2 set_v   
+
+This function sets the verse for a Bible reference.
+
 =head2 set_b2 
-=head2 set_oc  
-=head2 set_oc2 
-=head2 set_ov  
-=head2 set_ov2 
-=head2 set_cvs  
-=head2 set_dash 
+
+The same as set_b except used on the interval section of a Bible reference. 
+This function takes a book or an abbreviation as defined under the Match sections in the configurations file and sets the key2. 
+
+=head2 set_c2
+
+Sets the chapter for the interval part of the Bible reference.
+
+=head2 set_v2
+
+Sets the verse for the interval part of the Bible reference.
+
+=head2 set_cvs
+
+Sets CVS for the interval part of the Bible reference.
+
+=head2 set_cvs2
+
+Sets the CVS for the interval part of the Bible reference.
+
+=head2 set_dash
+
+Sets the DASH for the Bible reference.
 
 =head2 set_s2 
+
+Sets s2
+
 =head2 set_s3 
+
+Sets s3
+
 =head2 set_s4 
+
+Sets s4
+
 =head2 set_s5 
+
+Sets s5
+
 =head2 set_s6 
+
+Sets s6
+
 =head2 set_s7 
+
+Sets s7
+
 =head2 set_s8 
-=head2 set_s9 
+
+Sets s8
+
+=head2 set_s9
+
+Sets s9
+
+=head2 key 
+
+Returns key
+
+=head2 c
+
+Returns c
+
+=head2 v
+
+Returns v
+
+=head2 key2 
+
+Returns key2
+
+=head2 c2   
+
+Returns c2
+
+=head2 v2   
+
+Returns v2
+
+=head2 cvs
+
+Returns the cvs for a reference.
+
+=head2 dash  
+
+Returns the dash for a reference.
     
+=head2 ob
+
+Returns the original book or abbreviation
+
+=head2 ob2
+
+Returns the original book or abbreviation for the intervale part of the reference
+
+=head2 oc  
+
+Returns the original chapter
+
+=head2 oc2 
+
+Returns the original chapter for the intervale part of the reference
+
+=head2 ov  
+
+Returns the original verse
+
+=head2 ov2 
+
+Returns the original verse for the intervale part of the reference
+
+=head2 s2 
+
+Returns s2
+
+=head2 s3
+
+Returns s3
+
+=head2 s4 
+
+Returns s4
+
+=head2 s5 
+
+Returns s5
+
+=head2 s6 
+
+Returns s6
+
+=head2 s7 
+
+Returns s7
+
+=head2 s8 
+
+Returns s8
+
+=head2 s9 
+
+Returns s9
+
+=head2 book
+
+Returns the canonical book defined by the key
+
+=head2 book2
+
+Returns the canonical book defined by the key for the intervale part of the reference.
+
+=head2 abbreviation
+
+Returns the normalize abbreviation for a reference.
+
+=head2 abbreviation2 
+
+Returns the normalize abbreviation for a reference  for the intervale part of the reference.
+
+=head2 	formatted_c
+
+Returns the chapter as a number.  Usually this is the same as the getter $self->c except when $self->c is a roman number.
+
+=head2 	formatted_c2
+
+Returns the chapter as a number for the intervale part of the reference.  Usually this is the same as the getter $self->c2 except when $self->c2 is a roman number.
+
+=head2 	formatted_context_words
+
+Returns the context words. context words or phrases that begin an implicit biblical reference.
+For example, 'in the chapter', or 'see verses'.
+ 
+=head2 	formatted_cvs
+
+This function follows the following rules to return a chapter for separator:
+
+If a chapter and a verse are defined and the configuration file defines a character to use for the CVS then return it. Otherwise returns the CVS character that was parsed from the original reference. otherwise return ':'
+
+If the chapter and verse are not defined then return a null string.
+
+=head2 	formatted_cvs2
+
+This function follows the following rules to return a chapter for separator:
+
+If a chapter and a verse are defined and the configuration file defines a character to use for the CVS then return it. Otherwise returns the CVS character that was parsed from the original reference. otherwise return ':'
+
+If the chapter and verse are not defined then return a null string.
+
+=head2 	formatted_interval
+
+This function follows the following rules to return a chapter for separator:
+
+If any part of the interval part of the Bible verse is defined then return the dash character defined in the configuration file. Otherwise returns the dash character that was parsed from the original reference. otherwise return '-'
+
+If The current reference has no interval and then return a null string.
+
+=head2 	formatted_v
+
+Returns the verse as a number.  Usually this is the same as the getter $self->v except when $self->v is a roman number.
+
+=head2 	formatted_v2
+
+Returns the verse as a number for the intervale part of the reference.  Usually this is the same as the getter $self->v2 except when $self->v2 is a roman number.
+
 =head2 abbreviation2book
+
+Given any of the abbreviations defined under the match section of a reference in the configuration file, then returned its normalized book name.
+
 =head2 abbreviation2key
+
+Given any of the abbreviations defined under the match section of a reference in the configuration file, then returned its key.
+
 =head2 book2abbreviation
+
+Given any of the book names defined under the match section of a reference in the configuration file, then returned its normalized abbreviation.
+
 =head2 book2key
-=head2 book_type
-=head2 formatted_book
-=head2 formatted_book2
+
+Given any of the book names defined under the match section of a reference in the configuration file, then returned its key.
+
 =head2 key2abbreviation
+
+Given the key of a reference defined under the match section in the configuration file, then returned its normalize abbreviation.
+
 =head2 key2book
-=head2 reference
-=head2 set_b
-=head2 set_b2
-=head2 set_cvs
-=head2 set_dash
-=head2 setold
-=head3 normalize
+
+Given the key of a reference defined under the match section in the configuration file, then returned its normalize book name.
+
+=head2 book_type
+
+If this reference is implicit then this function returns 'NONE'.  For example, the reference 'see verse 5:1' returns a book_type of 'NONE'.
+
+If the original reference that was parsed contained an abbreviation for a book of the Bible then this returns 'ABBREVIATION'. For example, the reference 'Ro 12:16' returns a book_type of 'ABBREVIATION'.
+
+If the original reference that was parsed contained a book name then this returns 'CANONICAL_NAME'.  For example, the reference 'Ephesians 4:32' returns a book_type of 'CANONICAL_NAME'.
+
+=head2 formatted_book
+
+This function checks to see if the originally parsed reference was of type 'CANONICAL_NAME' or 'ABBREVIATION' and then returns the corresponding normalized book name or abbreviation for book.
+
+=head2 formatted_book2
+
+This function checks to see if the originally parsed reference was of type 'CANONICAL_NAME' or 'ABBREVIATION' and then returns the corresponding normalized book name or abbreviation for book2.
 
 =head2 compare
-=head2 end_interval_reference
+
+Given two references, this function returns -1 if the first reference is before the second reference, 0 if the references are identical, and 1 if the first reference is after the second.
+
+For example, given this configuration file: 
+	     
+	     books:
+	       1: 
+	         Match:
+	           Book: ['Genèse', 'Genese']
+	           Abbreviation: ['Ge']
+	         Normalized: 
+	           Book: Genèse
+	           Abbreviation: Ge
+	      
+	       66: 
+	         Match:
+	           Book: ['Revelation']
+	           Abbreviation: ['Re', 'Rev']
+	         Normalized: 
+	             Book: Revelation
+            Abbreviation: Re
+            
+and these references
+
+	$ref1->parse('Genesis 1:1');
+	$ref2->parse('Revelation 22:21');
+	$ref1->compare($ref2);
+	
+This function first compares their keys, which are respectively '1' and '66'.  Since 1 < 66, compare returns '-1' which means the first reference is before the second reference.
+            
 =head2 gt
-=head2 interval
+
+Given two references, this function returns nil if the first reference is after the second reference, and 1 if the first reference is before or identical to the second reference.
+
+For example, given this configuration file: 
+	     
+	     books:
+	       1: 
+	         Match:
+	           Book: ['Genèse', 'Genese']
+	           Abbreviation: ['Ge']
+	         Normalized: 
+	           Book: Genèse
+	           Abbreviation: Ge
+	      
+	       66: 
+	         Match:
+	           Book: ['Revelation']
+	           Abbreviation: ['Re', 'Rev']
+	         Normalized: 
+	             Book: Revelation
+            Abbreviation: Re
+            
+and these references
+
+	$ref1->parse('Genesis 1:1');
+	$ref2->parse('Revelation 22:21');
+	$ref1->gt($ref2);
+	
+This function first compares their keys, which are respectively '1' and '66'.  Since 1 < 66, gt returns nil which means the first reference is not after the second reference.
+
 =head2 lt
-=head2 max
+    
+Given two references, this function returns '1' if the first reference is before the second reference, and nil if the first reference is after or identical to the second reference.
+
+For example, given this configuration file: 
+	     
+	     books:
+	       1: 
+	         Match:
+	           Book: ['Genèse', 'Genese']
+	           Abbreviation: ['Ge']
+	         Normalized: 
+	           Book: Genèse
+	           Abbreviation: Ge
+	      
+	       66: 
+	         Match:
+	           Book: ['Revelation']
+	           Abbreviation: ['Re', 'Rev']
+	         Normalized: 
+	             Book: Revelation
+            Abbreviation: Re
+            
+and these references
+
+	$ref1->parse('Genesis 1:1');
+	$ref2->parse('Revelation 22:21');
+	$ref1->lt($ref2);
+	
+This function first compares their keys, which are respectively '1' and '66'.  Since 1 < 66, gt returns '1' which means the first reference is before the second reference.
+    
+=head2 interval
+
+Given two references this function returns one reference which is the interval of the two.  The interval reference always sorts the two references.
+
+	$ref1->parse('Genesis 1:1');
+	$ref2->parse('Revelation 22:21');
+	
+	$ref3 = $ref1->interval($ref2);
+	print $ref3->normalize;   # Returns 'Genesis 1:1 - Revelation 22:21'
+
+	# If we reverse the order of the references note the output is correctly ordered with 'Genesis' before 'Revelation'	
+	$ref1->parse('Revelation 22:21');
+	$ref2->parse('Genesis 1:1');
+	
+	$ref3 = $ref1->interval($ref2);
+	print $ref3->normalize;   # Returns 'Genesis 1:1 - Revelation 22:21'
+
 =head2 min
-=head2 n
-=head2 state
-=head2 parse_context_words
-=head2 set_context_words
+
+Given an array of references, this function returns the reference that is before all others.
+
+For example assuming the configuration file defines the book used below, 
+
+	$ref1->parse('Galatians 5:13');
+	$ref2->parse('Colossians 3:16');	
+	$ref3->parse('1 Thessalonians 5:11');
+	$ref4->parse('James 5:16');	
+	
+	# $min is set to 'Galatians 5:13'
+	$min = $ref1->min($ref2, $ref3, $ref4);
+
+=head2 max
+
+Given an array of references, this function returns the reference that is after all others.
+
+For example assuming the configuration file defines the book used below, 
+
+	$ref1->parse('Galatians 5:13');
+	$ref2->parse('Colossians 3:16');	
+	$ref3->parse('1 Thessalonians 5:11');
+	$ref4->parse('James 5:16');	
+	
+	# $max is set to 'James 5:16'
+	$max = $ref1->max($ref2, $ref3, $ref4);
+
+=head2 has_interval
+
+Returns '1' if a reference has an inteval component otherwise returns nil.
+
+	$ref1->parse('1 Peter 3:7-8')->has_interval;   	# returns '1'
+	$ref2->parse('1 Peter 4:9')->has_interval;	# returns nil
+
+=head2 begin_interval_reference
+
+Given a reference with an interval, this function returns the beginning part of the reference.
+
+	$ref2 = $ref1->parse('Matthew 5:3-11')->begin_interval_reference;
+	print $ref2->normalize;    # Prints 'Matthew 5:3'
+
+	$ref2 = $ref1->parse('Matthew 16-17')->begin_interval_reference;
+	print $ref2->normalize;    # Prints 'Matthew 16'
+	
+=head2 end_interval_reference
+
+Given a reference with an interval, this function returns the interval part of the reference.
+
+	$ref2 = $ref1->parse('Matthew 5:3-11')->end_interval_reference;
+	print $ref2->normalize;    # Prints 'Matthew 5:11'
+
+	$ref2 = $ref1->parse('Matthew 16-17')->end_interval_reference;
+	print $ref2->normalize;    # Prints 'Matthew 17'
+
 =head2 combine
+
+This functions combines two references using the context of the first reference to complete the 
+second.  This is useful when parsing references from commentaries or text.
+
+For example: 
+
+If you are using the Religion::Bible::Regex::Lexer to parse a string like :
+
+	'Luke 23:26, 28'
+	
+There are two references found 'Luke 23:26' and '28'.
+
+The combine function allows the you to combine 'Luke 23:26' and '28' to produce the reference 'Luke 23:28'.
+
+So the key and chapter of 'Luke 23:26' are transfered to 'Luke 23:28'.
+
+In general, if the second verse is implicit this function takes enough information from the first to make it an explicit reference.
+
+=head3 normalize
+
+Prints the Bible reference in a standardized way.
+
+First, the context words and book/abbreviation are printed. This is then followed by a space and then the chapter, cvs and verse.
+If there is an interval part then it's printed next.
+
+For example:
+	John 3:16
+	Ge 1:1
+
+=head2 n
 =head2 bol
+
 =head2 shared_state
+=head2 state
 =head2 	context
 =head2 	context_is_book
 =head2 	context_is_chapitre
 =head2 	context_is_verset
 =head2 	context_words
-=head2 	formatted_c
-=head2 	formatted_c2
-=head2 	formatted_context_words
-=head2 	formatted_cvs
-=head2 	formatted_cvs2
-=head2 	formatted_interval
-=head2 	formatted_v
-=head2 	formatted_v2
+
 
 
 
@@ -1445,11 +1936,11 @@ Returns true if the current the state is CHAPTER
 
 Returns true if the current the state is BOOK
 
-=head2 begin_interval_reference
-=head2 has_interval
 =head2 parse
 =head2 parse_chapitre
 =head2 parse_verset
+=head2 parse_context_words
+=head2 set_context_words
 
 =head1 DIAGNOSTICS
 
