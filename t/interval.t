@@ -67,7 +67,7 @@ run {
     $r2->parse($block->ref2, $block->state);    
     my $i = $r1->interval($r2);
 
-    is($r1->interval($r2)->normalize, $block->expect, $block->name);
+    is($r1->interval($r2)->formatted_normalize, $block->expect, $block->name);
 };
 
 #__END__

@@ -49,7 +49,7 @@ run {
     $ref->parse($block->reference);
 
     # Normalize the reference
-    my $result = $ref->normalize;
+    my $result = $ref->formatted_normalize;
     my $expected = $block->expected;
 
     is($result, $expected, $block->name);

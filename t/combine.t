@@ -61,67 +61,17 @@ run {
     $r1->parse($block->ref1, $block->ref1state);    
     $r2->parse($block->ref2, $block->ref2state);    
 
-    is($r1->combine($r2)->normalize, $block->result, $block->name);
+    is($r1->combine($r2)->formatted_normalize, $block->result, $block->name);
 };
 
-
-
-
-
-
-
-
-
-
- 
-
-
- 
- 
- 
- 
- 
- 
- 
-
- 
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __END__
-
-
 === combine LCV,CV - Ge 4:5, 8:15
 --- ref1 chomp
 Ge 4:5
 --- ref2 chomp
 voir 8:15
 --- result chomp
-Ge 8:15
+voir Ge 8:15
 
 === combine LCV,LCV - Ge 4:5, Ge 4:5, BOOK
 --- ref1 chomp
